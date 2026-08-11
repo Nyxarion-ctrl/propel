@@ -1,75 +1,39 @@
-import { generateText } from "ai"
-
-export const maxDuration = 30
-
-type Body = {
-  projectTitle?: string
-  scope?: string
-  clientCompany?: string
-}
+import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
-  let body: Body
   try {
-    body = (await req.json()) as Body
-  } catch {
-    return Response.json({ error: "Invalid request body." }, { status: 400 })
-  }
+    const { title, scope } = await req.json();
 
-  const projectTitle = (body.projectTitle ?? "").trim()
-  const scope = (body.scope ?? "").trim()
-  const clientCompany = (body.clientCompany ?? "").trim()
-
-  if (!projectTitle && !scope) {
-    return Response.json(
-      { error: "A project title or scope is required to generate text." },
-      { status: 400 },
-    )
-  }
-
-  const prompt = [
-    "Write a compelling, professional executive summary for a commercial B2B web-agency proposal.",
-    clientCompany ? `Client company: ${clientCompany}.` : "",
-    projectTitle ? `Project title: ${projectTitle}.` : "",
-    scope ? `Scope of work / deliverables:\n${scope}` : "",
-    "",
-    "Requirements:",
-    "- One or two paragraphs, 90-140 words total.",
-    "- Confident, persuasive, outcome-oriented tone that builds trust.",
-    "- Focus on business value and results, not a list of tasks.",
-    "- Do not use markdown, headings, bullet points, or a greeting/sign-off.",
-    "- Return only the summary prose.",
-  ]
-    .filter(Boolean)
-    .join("\n")
-
-  try {
-    const { text } = await generateText({
-      // Runs on Groq's fast inference via the Vercel AI Gateway.
-      model: "openai/gpt-oss-120b",
-      prompt,
-      temperature: 0.7,
-      providerOptions: {
-        gateway: {
-          only: ["groq"],
-        },
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
       },
-    })
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un experto en redacción comercial. Genera un resumen ejecutivo profesional y conciso para una propuesta de proyecto.',
+          },
+          {
+            role: 'user',
+            content: `Título del proyecto: ${title}\nAlcance: ${scope}`,
+          },
+        ],
+      }),
+    });
 
-    const summary = text.trim()
-    if (!summary) {
-      return Response.json(
-        { error: "The model returned an empty response. Please try again." },
-        { status: 502 },
-      )
+    const data = await response.json();
+
+    if (!response.ok) {
+      return NextResponse.json({ error: data.error?.message || 'Error con la API de Groq' }, { status: response.status });
     }
 
-    return Response.json({ summary })
-  } catch (err) {
-    console.log("[v0] generate-summary error:", err)
-    return Response.json(
-      { error: "Failed to generate text. Please try again." },
-      { status: 500 },
-    )
+    const summary = data.choices[0]?.message?.content || '';
+    return NextResponse.json({ summary });
+  } catch (error) {
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
