@@ -15,7 +15,7 @@ export async function POST(req: Request) {
         messages: [
           {
             role: 'system',
-            content: 'Eres un experto en redacción comercial. Genera un resumen ejecutivo profesional y conciso para una propuesta de proyecto.',
+            content: 'Eres un experto en redacción comercial. Genera directamente un resumen ejecutivo profesional y conciso para la propuesta de proyecto. NO incluyas saludos, ni frases introductorias como "Aquí tienes" o "A continuación". Comienza directamente con el texto formal del resumen.',
           },
           {
             role: 'user',
