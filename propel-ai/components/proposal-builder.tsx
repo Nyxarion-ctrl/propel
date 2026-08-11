@@ -21,10 +21,10 @@ export function ProposalBuilder() {
   const handleEnhance = useCallback(async () => {
     setEnhancing(true)
     try {
-      const scope = [
+      const scopeContent = [
         data.deliverables.filter(Boolean).map((d) => `- ${d}`).join("\n"),
         data.executiveSummary.trim()
-          ? `Existing summary for reference:\n${data.executiveSummary.trim()}`
+          ? `Detalles actuales:\n${data.executiveSummary.trim()}`
           : "",
       ]
         .filter(Boolean)
@@ -34,9 +34,8 @@ export function ProposalBuilder() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          projectTitle: data.projectTitle,
-          clientCompany: data.clientCompany,
-          scope,
+          title: data.projectTitle || "Propuesta Comercial",
+          scope: scopeContent || "Rediseño y optimización de servicios",
         }),
       })
 
@@ -46,22 +45,22 @@ export function ProposalBuilder() {
       }
 
       if (!res.ok || !payload.summary) {
-        throw new Error(payload.error || "Request failed")
+        throw new Error(payload.error || "Error al conectar con la API")
       }
 
       setData((prev) => ({ ...prev, executiveSummary: payload.summary! }))
-      setToast("Executive summary generated with Groq AI!")
+      setToast("¡Resumen ejecutivo generado con Groq AI!")
     } catch (err) {
-      console.log("[v0] handleEnhance error:", err)
+      console.log("[PropelAI] handleEnhance error:", err)
       setToast(
         err instanceof Error && err.message
           ? err.message
-          : "Could not generate text. Please try again.",
+          : "No se pudo generar el texto. Intenta nuevamente.",
       )
     } finally {
       setEnhancing(false)
     }
-  }, [data.projectTitle, data.clientCompany, data.deliverables, data.executiveSummary])
+  }, [data.projectTitle, data.deliverables, data.executiveSummary])
 
   const handleExport = useCallback(async () => {
     const node = document.getElementById("proposal-document")
@@ -87,7 +86,6 @@ export function ProposalBuilder() {
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
 
-      // Scale the captured document to the full page width, then paginate.
       const imgWidth = pageWidth
       const imgHeight = (canvas.height * imgWidth) / canvas.width
       const imgData = canvas.toDataURL("image/png")
@@ -110,9 +108,8 @@ export function ProposalBuilder() {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, "") || "proposal"
       pdf.save(`${safeName}-proposal.pdf`)
-      setToast("PDF downloaded successfully!")
+      setToast("¡PDF descargado con éxito!")
     } catch {
-      // Fallback to the browser print dialog if canvas capture fails.
       window.print()
     } finally {
       setExporting(false)
@@ -125,7 +122,7 @@ export function ProposalBuilder() {
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(url).catch(() => {})
     }
-    setToast("Link copied to clipboard!")
+    setToast("¡Enlace copiado al portapapeles!")
   }, [])
 
   return (
@@ -136,10 +133,10 @@ export function ProposalBuilder() {
       <div className="print-hidden flex items-center justify-between gap-4 border-b border-border bg-card/40 px-4 py-3 sm:px-6">
         <div className="hidden flex-col sm:flex">
           <span className="text-sm font-semibold text-foreground">
-            {data.projectTitle || "Untitled Proposal"}
+            {data.projectTitle || "Propuesta sin título"}
           </span>
           <span className="text-xs text-muted-foreground">
-            Editing for {data.clientCompany || "your client"}
+            Editando para {data.clientCompany || "tu cliente"}
           </span>
         </div>
         <div className="flex flex-1 items-center justify-end gap-2">
@@ -154,7 +151,7 @@ export function ProposalBuilder() {
             ) : (
               <WandSparkles className="h-4 w-4" />
             )}
-            <span className="hidden md:inline">Generate AI Text</span>
+            <span className="hidden md:inline">Generar Texto IA</span>
           </button>
           <button
             type="button"
@@ -162,7 +159,7 @@ export function ProposalBuilder() {
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             <Link2 className="h-4 w-4" />
-            <span className="hidden md:inline">Copy Link</span>
+            <span className="hidden md:inline">Copiar Enlace</span>
           </button>
           <button
             type="button"
@@ -175,7 +172,7 @@ export function ProposalBuilder() {
             ) : (
               <Download className="h-4 w-4" />
             )}
-            {exporting ? "Exporting..." : "Export PDF"}
+            {exporting ? "Exportando..." : "Exportar PDF"}
           </button>
         </div>
       </div>
@@ -185,7 +182,7 @@ export function ProposalBuilder() {
         {/* Editor */}
         <div className="thin-scrollbar print-hidden overflow-y-auto border-b border-border bg-background px-4 py-6 sm:px-6 lg:border-b-0 lg:border-r">
           <p className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Proposal details
+            Detalles de la propuesta
           </p>
           <ProposalEditor
             data={data}
