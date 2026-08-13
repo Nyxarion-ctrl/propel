@@ -1,253 +1,247 @@
 "use client"
 
-import { Check } from "lucide-react"
-import {
-  type ProposalData,
-  computeTotals,
-  formatCurrency,
-} from "@/lib/proposal"
+import React from "react"
+import { type ProposalData } from "@/lib/proposal"
 
-function formatDate(value: string) {
-  if (!value) return "—"
-  const d = new Date(value + "T00:00:00")
-  if (Number.isNaN(d.getTime())) return value
-  return d.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
+interface ProposalPreviewProps {
+  data: ProposalData
+  lang?: "es" | "en"
 }
 
-export function ProposalPreview({ data }: { data: ProposalData }) {
-  const { subtotal, tax, total } = computeTotals(data)
+const previewLabels = {
+  es: {
+    draft: "BORRADOR",
+    issued: "Emitido",
+    validUntil: "Válida hasta",
+    commercialProposal: "PROPUESTA COMERCIAL",
+    preparedFor: "PREPARADO PARA",
+    preparedBy: "PREPARADO POR",
+    executiveSummary: "RESUMEN EJECUTIVO",
+    scopeDeliverables: "ALCANCE Y ENTREGABLES",
+    investment: "INVERSIÓN",
+    description: "Descripción",
+    amount: "Monto",
+    subtotal: "Subtotal",
+    tax: "Impuesto",
+    total: "Total",
+    estimatedTimeline: "Cronograma estimado",
+    weeksFromKickoff: "semanas a partir del inicio del proyecto.",
+    termsAndPayment: "TÉRMINOS Y PAGO",
+    paymentTerms: "Términos de Pago",
+    revisionPolicy: "Política de Revisiones",
+    clientSignature: "Firma del cliente y fecha",
+    providerSignature: "Firma del proveedor y fecha",
+    footerText: "Esta propuesta es confidencial y para uso exclusivo de",
+    generatedWith: "Generado con PropelAI.",
+  },
+  en: {
+    draft: "DRAFT",
+    issued: "Issued",
+    validUntil: "Valid until",
+    commercialProposal: "COMMERCIAL PROPOSAL",
+    preparedFor: "PREPARED FOR",
+    preparedBy: "PREPARED BY",
+    executiveSummary: "EXECUTIVE SUMMARY",
+    scopeDeliverables: "SCOPE & DELIVERABLES",
+    investment: "INVESTMENT",
+    description: "Description",
+    amount: "Amount",
+    subtotal: "Subtotal",
+    tax: "Tax",
+    total: "Total",
+    estimatedTimeline: "Estimated timeline",
+    weeksFromKickoff: "weeks from project kickoff.",
+    termsAndPayment: "TERMS & PAYMENT",
+    paymentTerms: "Payment Terms",
+    revisionPolicy: "Revision Policy",
+    clientSignature: "Client signature & date",
+    providerSignature: "Provider signature & date",
+    footerText: "This proposal is confidential and intended solely for",
+    generatedWith: "Generated with PropelAI.",
+  },
+}
+
+export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
+  const t = previewLabels[lang]
+
+  const subtotal = data.lineItems.reduce((acc, item) => acc + (item.amount || 0), 0)
+  const taxAmount = (subtotal * (data.taxRate || 0)) / 100
+  const totalAmount = subtotal + taxAmount
+
+  const formatMoney = (val: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: data.currency || "USD" }).format(val)
 
   return (
-    <article
-      id="proposal-document"
-      className="print-document mx-auto flex min-h-full w-full max-w-[820px] flex-col bg-white text-slate-800 shadow-xl ring-1 ring-slate-200/70"
-    >
-      {/* Document header */}
-      <header className="flex items-start justify-between gap-6 border-b border-slate-200 px-10 pb-8 pt-10">
-        <div>
-          {data.logoDataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={data.logoDataUrl || "/placeholder.svg"}
-              alt="Company logo"
-              className="max-h-14 w-auto max-w-[220px] object-contain"
-            />
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
+    <div className="mx-auto max-w-2xl">
+      <div
+        id="proposal-document"
+        className="rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-12 text-card-foreground font-sans space-y-8"
+      >
+        {/* ENCABEZADO */}
+        <div className="flex items-start justify-between border-b border-border pb-6">
+          <div className="flex items-center gap-3">
+            {data.companyLogoUrl ? (
+              <img src={data.companyLogoUrl} alt="Logo" className="h-10 w-auto object-contain" />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg">
                 P
-              </span>
-              <span className="text-lg font-semibold tracking-tight text-slate-900">
-                PropelAI Studio
-              </span>
-            </div>
-          )}
-          <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400">
-            Commercial Proposal
-          </p>
+              </div>
+            )}
+            <span className="font-bold text-lg">{data.providerName || "PropelAI Studio"}</span>
+          </div>
+          <div className="text-right text-xs text-muted-foreground space-y-1">
+            <span className="inline-block rounded-full bg-amber-100 dark:bg-amber-950 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wide">
+              {t.draft}
+            </span>
+            <p>{t.issued}: {data.date}</p>
+            <p>{t.validUntil}: {data.validUntil}</p>
+          </div>
         </div>
-        <div className="text-right">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            Draft
-          </span>
-          <dl className="mt-4 space-y-1 text-xs text-slate-500">
-            <div className="flex justify-end gap-2">
-              <dt className="text-slate-400">Issued</dt>
-              <dd className="font-medium text-slate-700">
-                {formatDate(data.date)}
-              </dd>
-            </div>
-            <div className="flex justify-end gap-2">
-              <dt className="text-slate-400">Valid until</dt>
-              <dd className="font-medium text-slate-700">
-                {formatDate(data.validUntil)}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </header>
 
-      <div className="flex flex-1 flex-col gap-9 px-10 py-9">
-        {/* Title */}
         <div>
-          <h1 className="text-pretty text-2xl font-bold leading-tight tracking-tight text-slate-900">
-            {data.projectTitle || "Untitled Proposal"}
+          <p className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase mb-1">
+            {t.commercialProposal}
+          </p>
+          <h1 className="text-2xl font-extrabold sm:text-3xl tracking-tight leading-snug">
+            {data.projectTitle || "Propuesta Comercial"}
           </h1>
         </div>
 
-        {/* Parties */}
-        <section className="grid grid-cols-2 gap-6">
-          <div className="rounded-lg bg-slate-50 p-4 ring-1 ring-slate-100">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">
-              Prepared for
+        {/* PREPARADO PARA / POR */}
+        <div className="grid grid-cols-2 gap-6 rounded-xl bg-muted/50 p-4 text-xs">
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+              {t.preparedFor}
             </p>
-            <p className="mt-2 font-semibold text-slate-900">
-              {data.clientName || "—"}
-            </p>
-            <p className="text-sm text-slate-500">{data.clientCompany}</p>
+            <p className="font-bold text-sm text-foreground">{data.clientName}</p>
+            <p className="text-muted-foreground">{data.clientCompany}</p>
           </div>
-          <div className="rounded-lg bg-slate-50 p-4 ring-1 ring-slate-100">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">
-              Prepared by
+          <div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+              {t.preparedBy}
             </p>
-            <p className="mt-2 font-semibold text-slate-900">
-              {data.providerName || "—"}
+            <p className="font-bold text-sm text-foreground">{data.providerName}</p>
+          </div>
+        </div>
+
+        {/* RESUMEN EJECUTIVO */}
+        {data.executiveSummary && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              {t.executiveSummary}
+            </h3>
+            <p className="text-xs sm:text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
+              {data.executiveSummary}
             </p>
           </div>
-        </section>
+        )}
 
-        {/* Executive summary */}
-        <Section title="Executive Summary">
-          <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">
-            {data.executiveSummary || "No summary provided yet."}
-          </p>
-        </Section>
-
-        {/* Deliverables */}
-        <Section title="Scope & Deliverables">
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {data.deliverables
-              .filter((d) => d.trim())
-              .map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-                    <Check className="h-2.5 w-2.5" />
-                  </span>
-                  {item}
+        {/* ALCANCE Y ENTREGABLES */}
+        {data.deliverables && data.deliverables.filter(Boolean).length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              {t.scopeDeliverables}
+            </h3>
+            <ul className="space-y-2 text-xs sm:text-sm">
+              {data.deliverables.filter(Boolean).map((d, idx) => (
+                <li key={idx} className="flex items-start gap-2.5">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  <span>{d}</span>
                 </li>
               ))}
-          </ul>
-        </Section>
-
-        {/* Pricing table */}
-        <Section title="Investment">
-          <div className="overflow-hidden rounded-lg ring-1 ring-slate-200">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-400">
-                  <th className="px-4 py-2.5 font-semibold">Description</th>
-                  <th className="px-4 py-2.5 text-right font-semibold">
-                    Amount
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.lineItems.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-2.5 text-slate-700">
-                      {item.description || "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-right font-mono text-slate-700">
-                      {formatCurrency(item.amount, data.currency)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-slate-50/60">
-                <tr className="text-slate-500">
-                  <td className="px-4 py-2 text-right">Subtotal</td>
-                  <td className="px-4 py-2 text-right font-mono">
-                    {formatCurrency(subtotal, data.currency)}
-                  </td>
-                </tr>
-                <tr className="text-slate-500">
-                  <td className="px-4 py-2 text-right">
-                    Tax ({data.taxPercent}%)
-                  </td>
-                  <td className="px-4 py-2 text-right font-mono">
-                    {formatCurrency(tax, data.currency)}
-                  </td>
-                </tr>
-                <tr className="border-t border-slate-200 text-base font-bold text-slate-900">
-                  <td className="px-4 py-3 text-right">Total</td>
-                  <td className="px-4 py-3 text-right font-mono text-indigo-600">
-                    {formatCurrency(total, data.currency)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+            </ul>
           </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <p>
-              Estimated timeline:{" "}
-              <span className="font-semibold text-slate-700">
-                {data.timelineWeeks} weeks
-              </span>{" "}
-              from project kickoff.
-            </p>
-            {data.paymentSchedule.trim() && (
-              <p className="rounded-full bg-indigo-50 px-3 py-1 font-medium text-indigo-700 ring-1 ring-indigo-100">
-                {data.paymentSchedule}
+        )}
+
+        {/* INVERSIÓN Y TABLA */}
+        {data.lineItems && data.lineItems.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              {t.investment}
+            </h3>
+            <div className="overflow-hidden rounded-xl border border-border">
+              <table className="w-full text-xs sm:text-sm">
+                <thead className="bg-muted/60 text-muted-foreground font-semibold">
+                  <tr>
+                    <th className="px-4 py-2.5 text-left">{t.description}</th>
+                    <th className="px-4 py-2.5 text-right">{t.amount}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {data.lineItems.map((item) => (
+                    <tr key={item.id}>
+                      <td className="px-4 py-2.5 text-foreground">{item.description}</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-foreground">
+                        {formatMoney(item.amount || 0)}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-muted/20">
+                    <td className="px-4 py-2 font-medium text-muted-foreground">{t.subtotal}</td>
+                    <td className="px-4 py-2 text-right font-medium text-foreground">{formatMoney(subtotal)}</td>
+                  </tr>
+                  {data.taxRate > 0 && (
+                    <tr className="bg-muted/20">
+                      <td className="px-4 py-2 font-medium text-muted-foreground">{t.tax} ({data.taxRate}%)</td>
+                      <td className="px-4 py-2 text-right font-medium text-foreground">{formatMoney(taxAmount)}</td>
+                    </tr>
+                  )}
+                  <tr className="bg-muted/40 font-bold">
+                    <td className="px-4 py-3 text-foreground text-sm">{t.total}</td>
+                    <td className="px-4 py-3 text-right text-primary text-base">{formatMoney(totalAmount)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {data.estimatedWeeks > 0 && (
+              <p className="text-xs text-muted-foreground pt-1">
+                {t.estimatedTimeline}: <span className="font-semibold text-foreground">{data.estimatedWeeks} {t.weeksFromKickoff}</span>
               </p>
             )}
           </div>
-        </Section>
+        )}
 
-        {/* Terms */}
-        <Section title="Terms & Payment">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Payment Terms
-              </h4>
-              <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-slate-600">
-                {data.paymentTerms || "—"}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Revision Policy
-              </h4>
-              <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-slate-600">
-                {data.revisionPolicy || "—"}
-              </p>
+        {/* TÉRMINOS Y PAGO */}
+        {(data.paymentTerms || data.revisionPolicy) && (
+          <div className="space-y-3 border-t border-border pt-6">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              {t.termsAndPayment}
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-foreground/80">
+              {data.paymentTerms && (
+                <div>
+                  <p className="font-semibold text-foreground mb-1">{t.paymentTerms}</p>
+                  <p className="leading-relaxed">{data.paymentTerms}</p>
+                </div>
+              )}
+              {data.revisionPolicy && (
+                <div>
+                  <p className="font-semibold text-foreground mb-1">{t.revisionPolicy}</p>
+                  <p className="leading-relaxed">{data.revisionPolicy}</p>
+                </div>
+              )}
             </div>
           </div>
-        </Section>
+        )}
 
-        {/* Signatures */}
-        <section className="mt-auto grid grid-cols-2 gap-8 border-t border-slate-200 pt-8">
-          <Signature role="Client" name={data.clientName} />
-          <Signature role="Provider" name={data.providerName} />
-        </section>
+        {/* FIRMAS */}
+        <div className="grid grid-cols-2 gap-8 border-t border-border pt-12 text-xs">
+          <div className="border-t border-muted-foreground/30 pt-2">
+            <p className="font-bold text-foreground">{data.clientName}</p>
+            <p className="text-muted-foreground text-[10px]">{t.clientSignature}</p>
+          </div>
+          <div className="border-t border-muted-foreground/30 pt-2">
+            <p className="font-bold text-foreground">{data.providerName}</p>
+            <p className="text-muted-foreground text-[10px]">{t.providerSignature}</p>
+          </div>
+        </div>
 
-        <p className="pt-2 text-center text-[11px] text-slate-400">
-          This proposal is confidential and intended solely for{" "}
-          {data.clientCompany || "the recipient"}. Generated with PropelAI.
+        {/* PIE DE PÁGINA */}
+        <p className="text-[10px] text-center text-muted-foreground border-t border-border pt-4">
+          {t.footerText} {data.clientCompany || "el cliente"}. {t.generatedWith}
         </p>
       </div>
-    </article>
-  )
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <section>
-      <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.1em] text-indigo-600">
-        {title}
-      </h3>
-      {children}
-    </section>
-  )
-}
-
-function Signature({ role, name }: { role: string; name: string }) {
-  return (
-    <div>
-      <div className="h-12 border-b border-slate-300" />
-      <p className="mt-2 text-sm font-medium text-slate-700">{name || "—"}</p>
-      <p className="text-xs text-slate-400">{role} signature &amp; date</p>
     </div>
   )
 }
