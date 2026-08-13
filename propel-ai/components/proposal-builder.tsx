@@ -8,7 +8,26 @@ import { ProposalEditor } from "@/components/proposal-editor"
 import { ProposalPreview } from "@/components/proposal-preview"
 import { Toast } from "@/components/toast"
 
+// Plantillas por defecto para cambio rápido de idioma en la propuesta inicial
+const defaultContents = {
+  es: {
+    projectTitle: "Propuesta de Rediseño Web para Acme Corp",
+    clientName: "Sarah Mitchell",
+    clientCompany: "Acme Corp",
+    providerName: "Jordan Rivera — PropelAI Studio",
+    executiveSummary: "El sitio web actual de Acme Corp ya no refleja la calidad de sus productos ni la ambición de su marca. Esta propuesta detalla un rediseño completo enfocado en una experiencia moderna y orientada a la conversión: una identidad visual renovada, un front-end más rápido y accesible, y una estructura de contenido que guíe a los visitantes hacia convertirse en clientes."
+  },
+  en: {
+    projectTitle: "Web Redesign Proposal for Acme Corp",
+    clientName: "Sarah Mitchell",
+    clientCompany: "Acme Corp",
+    providerName: "Jordan Rivera — PropelAI Studio",
+    executiveSummary: "Acme Corp's current website no longer reflects the quality of its products or the ambitions of its brand. This proposal outlines a complete redesign focused on a modern, conversion-oriented experience: a refreshed visual identity, a faster and more accessible front-end, and a content structure that guides visitors toward becoming customers."
+  }
+}
+
 export function ProposalBuilder() {
+  const [lang, setLang] = useState<"es" | "en">("es")
   const [data, setData] = useState<ProposalData>(defaultProposal)
   const [enhancing, setEnhancing] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -17,6 +36,17 @@ export function ProposalBuilder() {
   const update = useCallback((patch: Partial<ProposalData>) => {
     setData((prev) => ({ ...prev, ...patch }))
   }, [])
+
+  // Manejador del cambio de idioma en la barra
+  const handleLanguageChange = (newLang: "es" | "en") => {
+    setLang(newLang)
+    setData((prev) => ({
+      ...prev,
+      projectTitle: defaultContents[newLang].projectTitle,
+      executiveSummary: defaultContents[newLang].executiveSummary,
+    }))
+    setToast(newLang === "es" ? "Idioma cambiado a Español" : "Language changed to English")
+  }
 
   const handleEnhance = useCallback(async () => {
     setEnhancing(true)
@@ -34,8 +64,9 @@ export function ProposalBuilder() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: data.projectTitle || "Propuesta Comercial",
+          title: data.projectTitle || (lang === "es" ? "Propuesta Comercial" : "Commercial Proposal"),
           scope: scopeContent || "Rediseño y optimización de servicios",
+          lang: lang,
         }),
       })
 
@@ -49,18 +80,18 @@ export function ProposalBuilder() {
       }
 
       setData((prev) => ({ ...prev, executiveSummary: payload.summary! }))
-      setToast("¡Resumen ejecutivo generado con Groq AI!")
+      setToast(lang === "es" ? "¡Resumen ejecutivo generado!" : "Executive summary generated!")
     } catch (err) {
       console.log("[PropelAI] handleEnhance error:", err)
       setToast(
         err instanceof Error && err.message
           ? err.message
-          : "No se pudo generar el texto. Intenta nuevamente.",
+          : (lang === "es" ? "No se pudo generar el texto." : "Could not generate text."),
       )
     } finally {
       setEnhancing(false)
     }
-  }, [data.projectTitle, data.deliverables, data.executiveSummary])
+  }, [data.projectTitle, data.deliverables, data.executiveSummary, lang])
 
   const handleExport = useCallback(async () => {
     const node = document.getElementById("proposal-document")
@@ -108,13 +139,13 @@ export function ProposalBuilder() {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, "") || "proposal"
       pdf.save(`${safeName}-proposal.pdf`)
-      setToast("¡PDF descargado con éxito!")
+      setToast(lang === "es" ? "¡PDF descargado con éxito!" : "PDF downloaded successfully!")
     } catch {
       window.print()
     } finally {
       setExporting(false)
     }
-  }, [data.clientCompany])
+  }, [data.clientCompany, lang])
 
   const handleCopyLink = useCallback(() => {
     const url =
@@ -122,8 +153,8 @@ export function ProposalBuilder() {
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(url).catch(() => {})
     }
-    setToast("¡Enlace copiado al portapapeles!")
-  }, [])
+    setToast(lang === "es" ? "¡Enlace copiado al portapapeles!" : "Link copied to clipboard!")
+  }, [lang])
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
@@ -133,13 +164,40 @@ export function ProposalBuilder() {
       <div className="print-hidden flex items-center justify-between gap-4 border-b border-border bg-card/40 px-4 py-3 sm:px-6">
         <div className="hidden flex-col sm:flex">
           <span className="text-sm font-semibold text-foreground">
-            {data.projectTitle || "Propuesta sin título"}
+            {data.projectTitle || (lang === "es" ? "Propuesta sin título" : "Untitled Proposal")}
           </span>
           <span className="text-xs text-muted-foreground">
-            Editando para {data.clientCompany || "tu cliente"}
+            {lang === "es" ? "Editando para" : "Editing for"} {data.clientCompany || (lang === "es" ? "tu cliente" : "your client")}
           </span>
         </div>
+        
         <div className="flex flex-1 items-center justify-end gap-2">
+          {/* TOGGLE ES / EN */}
+          <div className="flex items-center rounded-lg border border-border bg-card p-1 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => handleLanguageChange("es")}
+              className={`rounded-md px-2.5 py-1 transition-colors ${
+                lang === "es"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              ES
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLanguageChange("en")}
+              className={`rounded-md px-2.5 py-1 transition-colors ${
+                lang === "en"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              EN
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={handleEnhance}
@@ -151,7 +209,9 @@ export function ProposalBuilder() {
             ) : (
               <WandSparkles className="h-4 w-4" />
             )}
-            <span className="hidden md:inline">Generar Texto IA</span>
+            <span className="hidden md:inline">
+              {lang === "es" ? "Generar Texto IA" : "Generate AI Text"}
+            </span>
           </button>
           <button
             type="button"
@@ -159,7 +219,9 @@ export function ProposalBuilder() {
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             <Link2 className="h-4 w-4" />
-            <span className="hidden md:inline">Copiar Enlace</span>
+            <span className="hidden md:inline">
+              {lang === "es" ? "Copiar Enlace" : "Copy Link"}
+            </span>
           </button>
           <button
             type="button"
@@ -172,7 +234,9 @@ export function ProposalBuilder() {
             ) : (
               <Download className="h-4 w-4" />
             )}
-            {exporting ? "Exportando..." : "Exportar PDF"}
+            {exporting
+              ? (lang === "es" ? "Exportando..." : "Exporting...")
+              : (lang === "es" ? "Exportar PDF" : "Export PDF")}
           </button>
         </div>
       </div>
@@ -182,7 +246,7 @@ export function ProposalBuilder() {
         {/* Editor */}
         <div className="thin-scrollbar print-hidden overflow-y-auto border-b border-border bg-background px-4 py-6 sm:px-6 lg:border-b-0 lg:border-r">
           <p className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Detalles de la propuesta
+            {lang === "es" ? "Detalles de la propuesta" : "Proposal Details"}
           </p>
           <ProposalEditor
             data={data}
