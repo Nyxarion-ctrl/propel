@@ -11,7 +11,7 @@ import {
 } from "@/lib/proposal"
 import { ProposalPreview } from "./proposal-preview"
 
-// ICONOS SVG INLINE PARA MANTENER LA INTERFAZ LIMPIA
+// ICONOS SVG
 const SparklesIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
@@ -60,6 +60,7 @@ const ChevronDown = () => (
   </svg>
 )
 
+// LABELS DE LA INTERFAZ TRADUCIDOS 100%
 const uiLabels = {
   es: {
     editingFor: "Editando para",
@@ -68,34 +69,34 @@ const uiLabels = {
     linkCopied: "¡Copiado!",
     exportPdf: "Exportar PDF",
     proposalDetails: "DETALLES DE LA PROPUESTA",
-    companyLogo: "Company Logo",
-    logoHelp: "PNG, JPG or SVG. Shown on the proposal header.",
-    uploadLogo: "Upload logo",
-    clientProviderInfo: "Client & Provider Info",
-    clientName: "Client Name",
-    clientCompany: "Client Company",
-    providerName: "Provider Name",
-    date: "Date",
-    validUntil: "Valid Until",
-    scopeOfWork: "Scope of Work",
-    projectTitle: "Project Title",
-    executiveSummary: "Executive Summary / Overview",
-    coreDeliverables: "Core Deliverables",
-    addDeliverable: "Add deliverable",
-    pricingTimeline: "Pricing & Timeline",
-    estimatedTimeline: "Estimated Timeline (weeks)",
-    currency: "Currency",
-    lineItemPricing: "Line-item Pricing",
+    companyLogo: "Logo de la Empresa",
+    logoHelp: "PNG, JPG o SVG. Se muestra en el encabezado de la propuesta.",
+    uploadLogo: "Subir logo",
+    clientProviderInfo: "Info del Cliente y Proveedor",
+    clientName: "Nombre del Cliente",
+    clientCompany: "Empresa del Cliente",
+    providerName: "Nombre del Proveedor",
+    date: "Fecha de Emisión",
+    validUntil: "Válido Hasta",
+    scopeOfWork: "Alcance del Trabajo",
+    projectTitle: "Título del Proyecto",
+    executiveSummary: "Resumen Ejecutivo / Descripción",
+    coreDeliverables: "Entregables Principales",
+    addDeliverable: "Agregar entregable",
+    pricingTimeline: "Precios y Cronograma",
+    estimatedTimeline: "Tiempo Estimado (semanas)",
+    currency: "Moneda",
+    lineItemPricing: "Desglose de Costos",
     descriptionPlaceholder: "Descripción",
     amountPlaceholder: "Monto",
-    addLineItem: "Add line item",
-    taxRate: "Tax (%)",
+    addLineItem: "Agregar elemento",
+    taxRate: "Impuesto (%)",
     subtotal: "Subtotal",
-    tax: "Tax (%)",
+    tax: "Impuesto",
     total: "Total",
-    termsPayment: "Terms & Payment",
-    paymentTerms: "Payment Terms",
-    revisionPolicy: "Revision Policy",
+    termsPayment: "Términos y Pago",
+    paymentTerms: "Términos de Pago",
+    revisionPolicy: "Política de Revisiones",
   },
   en: {
     editingFor: "Editing for",
@@ -127,7 +128,7 @@ const uiLabels = {
     addLineItem: "Add line item",
     taxRate: "Tax (%)",
     subtotal: "Subtotal",
-    tax: "Tax (%)",
+    tax: "Tax",
     total: "Total",
     termsPayment: "Terms & Payment",
     paymentTerms: "Payment Terms",
@@ -140,7 +141,6 @@ export function ProposalBuilder() {
   const [formData, setFormData] = useState<ProposalData>(defaultProposalES)
   const [copied, setCopied] = useState(false)
 
-  // Estado para acordeones colapsables
   const [openSections, setOpenSections] = useState({
     client: true,
     scope: true,
@@ -226,7 +226,7 @@ export function ProposalBuilder() {
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-zinc-950 text-foreground font-sans">
       
-      {/* 1. HEADER SUPERIOR RESTAURADO */}
+      {/* HEADER SUPERIOR */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur px-4 py-2.5 sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
@@ -241,9 +241,8 @@ export function ProposalBuilder() {
             </div>
           </div>
 
-          {/* ACCIONES SUPERIORES */}
           <div className="flex items-center gap-2.5">
-            {/* TOGGLE IDIOMA */}
+            {/* TOGGLE ES / EN */}
             <div className="flex items-center rounded-lg border border-border bg-muted/60 p-0.5 text-xs">
               <button
                 type="button"
@@ -294,7 +293,7 @@ export function ProposalBuilder() {
         </div>
       </header>
 
-      {/* SUB-HEADER CON TÍTULO PROYECTO Y EDITANDO */}
+      {/* SUB-HEADER */}
       <div className="border-b border-border bg-background/50 px-4 py-2 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <h1 className="text-sm font-bold text-foreground leading-tight">
@@ -306,17 +305,17 @@ export function ProposalBuilder() {
         </div>
       </div>
 
-      {/* 2. CONTENIDO PRINCIPAL: 2 COLUMNAS */}
+      {/* CONTENIDO PRINCIPAL */}
       <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* COLUMNA IZQUIERDA: TARJETAS CON ACORDEÓN RESTAURADAS */}
+          {/* COLUMNA IZQUIERDA: FORMULARIO */}
           <div className="lg:col-span-5 space-y-4">
             <h2 className="text-xs font-bold tracking-widest text-muted-foreground uppercase px-1">
               {t.proposalDetails}
             </h2>
 
-            {/* SECCIÓN LOGO */}
+            {/* LOGO */}
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted border border-dashed border-border text-muted-foreground">
@@ -337,7 +336,7 @@ export function ProposalBuilder() {
               </label>
             </div>
 
-            {/* ACORDEÓN 1: INFO CLIENTE Y PROVEEDOR */}
+            {/* CLIENTE Y PROVEEDOR */}
             <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
               <button
                 type="button"
@@ -410,7 +409,7 @@ export function ProposalBuilder() {
               )}
             </div>
 
-            {/* ACORDEÓN 2: ALCANCE DEL TRABAJO */}
+            {/* ALCANCE DEL TRABAJO */}
             <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
               <button
                 type="button"
@@ -482,7 +481,7 @@ export function ProposalBuilder() {
               )}
             </div>
 
-            {/* ACORDEÓN 3: PRECIOS Y CRONOGRAMA */}
+            {/* PRECIOS Y CRONOGRAMA */}
             <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
               <button
                 type="button"
@@ -591,7 +590,7 @@ export function ProposalBuilder() {
               )}
             </div>
 
-            {/* ACORDEÓN 4: TÉRMINOS Y PAGO */}
+            {/* TÉRMINOS Y PAGO */}
             <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
               <button
                 type="button"
@@ -633,7 +632,7 @@ export function ProposalBuilder() {
 
           </div>
 
-          {/* COLUMNA DERECHA: VISTA PREVIA DEL DOCUMENTO */}
+          {/* VISTA PREVIA DEL DOCUMENTO */}
           <div className="lg:col-span-7 sticky top-20">
             <ProposalPreview data={formData} lang={lang} />
           </div>
