@@ -44,8 +44,9 @@ export interface ProposalData {
   revisionPolicy: string
 }
 
-export function computeTotals(lineItems: LineItem[], taxRate: number) {
-  const subtotal = lineItems.reduce((acc, item) => acc + (item.amount || 0), 0)
+export function computeTotals(lineItems: LineItem[] = [], taxRate: number = 0) {
+  const items = Array.isArray(lineItems) ? lineItems : []
+  const subtotal = items.reduce((acc, item) => acc + (item?.amount || 0), 0)
   const tax = (subtotal * (taxRate || 0)) / 100
   const total = subtotal + tax
   return { subtotal, tax, total }
@@ -55,11 +56,11 @@ export function formatCurrency(amount: number, currencyCode: string = "USD") {
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currencyCode,
+      currency: currencyCode || "USD",
       maximumFractionDigits: 2,
     }).format(amount)
   } catch {
-    return `$${amount.toFixed(2)}`
+    return `$${(amount || 0).toFixed(2)}`
   }
 }
 
