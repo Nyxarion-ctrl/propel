@@ -1,25 +1,3 @@
-export type CurrencyCode = "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "DOP"
-
-export interface CurrencyOption {
-  code: CurrencyCode
-  symbol: string
-  label: string
-}
-
-export const CURRENCIES: CurrencyOption[] = [
-  { code: "USD", symbol: "$", label: "USD — US Dollar" },
-  { code: "EUR", symbol: "€", label: "EUR — Euro" },
-  { code: "GBP", symbol: "£", label: "GBP — British Pound" },
-  { code: "CAD", symbol: "CA$", label: "CAD — Canadian Dollar" },
-  { code: "AUD", symbol: "A$", label: "AUD — Australian Dollar" },
-  { code: "DOP", symbol: "RD$", label: "DOP — Peso Dominicano" },
-]
-
-export interface Deliverable {
-  id: string
-  title: string
-}
-
 export interface LineItem {
   id: string
   description: string
@@ -27,7 +5,6 @@ export interface LineItem {
 }
 
 export interface ProposalData {
-  companyLogoUrl?: string
   clientName: string
   clientCompany: string
   providerName: string
@@ -37,35 +14,21 @@ export interface ProposalData {
   executiveSummary: string
   deliverables: string[]
   estimatedWeeks: number
-  currency: CurrencyCode | string
+  currency: string
   lineItems: LineItem[]
   taxRate: number
   paymentTerms: string
   revisionPolicy: string
+  companyLogoUrl?: string
 }
 
-export function computeTotals(lineItems: LineItem[] = [], taxRate: number = 0) {
-  const items = Array.isArray(lineItems) ? lineItems : []
-  const subtotal = items.reduce((acc, item) => acc + (item?.amount || 0), 0)
-  const tax = (subtotal * (taxRate || 0)) / 100
-  const total = subtotal + tax
-  return { subtotal, tax, total }
-}
-
-export function formatCurrency(amount: number, currencyCode: string = "USD") {
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currencyCode || "USD",
-      maximumFractionDigits: 2,
-    }).format(amount)
-  } catch {
-    return `$${(amount || 0).toFixed(2)}`
-  }
-}
+export const CURRENCIES = [
+  { code: "USD", symbol: "$", label: "USD ($)" },
+  { code: "EUR", symbol: "€", label: "EUR (€)" },
+  { code: "DOP", symbol: "RD$", label: "DOP (RD$)" },
+]
 
 export const defaultProposalES: ProposalData = {
-  companyLogoUrl: "",
   clientName: "Sarah Mitchell",
   clientCompany: "Acme Corp",
   providerName: "Jordan Rivera — PropelAI Studio",
@@ -76,29 +39,28 @@ export const defaultProposalES: ProposalData = {
     "El sitio web actual de Acme Corp ya no refleja la calidad de sus productos ni la ambición de su marca. Esta propuesta detalla un rediseño completo enfocado en una experiencia moderna y orientada a la conversión: una identidad visual renovada, un front-end más rápido y accesible, y una estructura de contenido que guíe a los visitantes hacia convertirse en clientes.",
   deliverables: [
     "Taller de descubrimiento y auditoría competitiva",
-    "Wireframes de UX para las plantillas clave",
+    "Wireframes UX para todas las plantillas de página clave",
     "Sistema de diseño UI de alta fidelidad en Figma",
-    "Desarrollo front-end responsivo (desktop, tablet, móvil)",
-    "Integración CMS y migración de contenidos",
-    "Configuración de analítica y 30 días de soporte post-lanzamiento",
+    "Desarrollo front-end responsivo (escritorio, tablet, móvil)",
+    "Integración CMS y migración de contenido",
+    "Configuración de analítica y soporte post-lanzamiento por 30 días",
   ],
-  estimatedWeeks: 8,
+  estimatedWeeks: 6,
   currency: "USD",
   lineItems: [
-    { id: "1", description: "Descubrimiento y Estrategia", amount: 2400 },
-    { id: "2", description: "Diseño UX / UI", amount: 6800 },
-    { id: "3", description: "Desarrollo Front-end", amount: 9500 },
-    { id: "4", description: "Integración CMS y Control de Calidad", amount: 3300 },
+    { id: "1", description: "Descubrimiento, Estrategia y Wireframing UX", amount: 2500 },
+    { id: "2", description: "Diseño de Interfaz (UI) y Sistema de Diseño", amount: 3500 },
+    { id: "3", description: "Desarrollo Front-End e Integración CMS", amount: 4800 },
+    { id: "4", description: "Pruebas QA, Analítica y Despliegue", amount: 1200 },
   ],
-  taxRate: 8,
+  taxRate: 0,
   paymentTerms:
-    "50% de depósito al firmar para reservar el cupo del proyecto. El 50% restante al entregar la versión final antes del paso a producción. Facturas pagaderas en 14 días vía transferencia bancaria.",
+    "Depósito del 50% al iniciar el proyecto, 30% tras la aprobación del diseño, y 20% restante antes del lanzamiento final.",
   revisionPolicy:
-    "Se incluyen dos rondas de revisiones en cada hito principal (diseño y desarrollo). Las rondas adicionales se facturan a $95/hora con estimación previa.",
+    "Incluye hasta 2 rondas de revisiones por etapa (Diseño y Desarrollo). Revisiones adicionales se facturarán a la tarifa por hora acordada.",
 }
 
 export const defaultProposalEN: ProposalData = {
-  companyLogoUrl: "",
   clientName: "Sarah Mitchell",
   clientCompany: "Acme Corp",
   providerName: "Jordan Rivera — PropelAI Studio",
@@ -115,19 +77,29 @@ export const defaultProposalEN: ProposalData = {
     "CMS integration & content migration",
     "Analytics setup and 30-day post-launch support",
   ],
-  estimatedWeeks: 8,
+  estimatedWeeks: 6,
   currency: "USD",
   lineItems: [
-    { id: "1", description: "Discovery & Strategy", amount: 2400 },
-    { id: "2", description: "UX / UI Design", amount: 6800 },
-    { id: "3", description: "Front-end Development", amount: 9500 },
-    { id: "4", description: "CMS Integration & QA", amount: 3300 },
+    { id: "1", description: "Discovery, Strategy & UX Wireframing", amount: 2500 },
+    { id: "2", description: "UI Design & Design System", amount: 3500 },
+    { id: "3", description: "Front-End Development & CMS Integration", amount: 4800 },
+    { id: "4", description: "QA Testing, Analytics & Deployment", amount: 1200 },
   ],
-  taxRate: 8,
+  taxRate: 0,
   paymentTerms:
-    "50% deposit due upon signing to reserve the project slot. Remaining 50% due upon final delivery and before production handoff. Invoices are payable within 14 days via bank transfer.",
+    "50% deposit upon project kickoff, 30% upon design approval, and 20% prior to final launch.",
   revisionPolicy:
-    "Two rounds of revisions are included at each major milestone (design and development). Additional revision rounds are billed at $95/hour and estimated in advance.",
+    "Includes up to 2 rounds of revisions per milestone (Design & Development). Additional revisions billed at standard hourly rate.",
 }
 
-export const defaultProposal = defaultProposalES
+export function computeTotals(lineItems: LineItem[], taxRate: number) {
+  const subtotal = lineItems.reduce((acc, item) => acc + (Number(item.amount) || 0), 0)
+  const tax = subtotal * ((Number(taxRate) || 0) / 100)
+  const total = subtotal + tax
+  return { subtotal, tax, total }
+}
+
+export function formatCurrency(amount: number, currencyCode: string) {
+  const curr = CURRENCIES.find((c) => c.code === currencyCode) || CURRENCIES[0]
+  return `${curr.symbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
