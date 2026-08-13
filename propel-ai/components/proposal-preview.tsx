@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { type ProposalData } from "@/lib/proposal"
+import { type ProposalData, computeTotals, formatCurrency } from "@/lib/proposal"
 
 interface ProposalPreviewProps {
   data: ProposalData
@@ -62,14 +62,14 @@ const previewLabels = {
 }
 
 export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
-  const t = previewLabels[lang]
+  const t = previewLabels[lang] || previewLabels.es
 
-  const subtotal = data.lineItems.reduce((acc, item) => acc + (item.amount || 0), 0)
-  const taxAmount = (subtotal * (data.taxRate || 0)) / 100
-  const totalAmount = subtotal + taxAmount
+  const lineItems = Array.isArray(data?.lineItems) ? data.lineItems : []
+  const deliverables = Array.isArray(data?.deliverables) ? data.deliverables : []
 
-  const formatMoney = (val: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: data.currency || "USD" }).format(val)
+  const { subtotal, tax: taxAmount, total: totalAmount } = computeTotals(lineItems, data?.taxRate || 0)
+
+  const formatMoney = (val: number) => formatCurrency(val, data?.currency || "USD")
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -80,21 +80,21 @@ export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
         {/* ENCABEZADO */}
         <div className="flex items-start justify-between border-b border-border pb-6">
           <div className="flex items-center gap-3">
-            {data.companyLogoUrl ? (
+            {data?.companyLogoUrl ? (
               <img src={data.companyLogoUrl} alt="Logo" className="h-10 w-auto object-contain" />
             ) : (
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg">
                 P
               </div>
             )}
-            <span className="font-bold text-lg">{data.providerName || "PropelAI Studio"}</span>
+            <span className="font-bold text-lg">{data?.providerName || "PropelAI Studio"}</span>
           </div>
           <div className="text-right text-xs text-muted-foreground space-y-1">
             <span className="inline-block rounded-full bg-amber-100 dark:bg-amber-950 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wide">
               {t.draft}
             </span>
-            <p>{t.issued}: {data.date}</p>
-            <p>{t.validUntil}: {data.validUntil}</p>
+            <p>{t.issued}: {data?.date || ""}</p>
+            <p>{t.validUntil}: {data?.validUntil || ""}</p>
           </div>
         </div>
 
@@ -103,7 +103,7 @@ export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
             {t.commercialProposal}
           </p>
           <h1 className="text-2xl font-extrabold sm:text-3xl tracking-tight leading-snug">
-            {data.projectTitle || "Propuesta Comercial"}
+            {data?.projectTitle || "Propuesta Comercial"}
           </h1>
         </div>
 
@@ -113,19 +113,19 @@ export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
               {t.preparedFor}
             </p>
-            <p className="font-bold text-sm text-foreground">{data.clientName}</p>
-            <p className="text-muted-foreground">{data.clientCompany}</p>
+            <p className="font-bold text-sm text-foreground">{data?.clientName || ""}</p>
+            <p className="text-muted-foreground">{data?.clientCompany || ""}</p>
           </div>
           <div>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
               {t.preparedBy}
             </p>
-            <p className="font-bold text-sm text-foreground">{data.providerName}</p>
+            <p className="font-bold text-sm text-foreground">{data?.providerName || ""}</p>
           </div>
         </div>
 
         {/* RESUMEN EJECUTIVO */}
-        {data.executiveSummary && (
+        {data?.executiveSummary && (
           <div className="space-y-2">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {t.executiveSummary}
@@ -137,13 +137,13 @@ export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
         )}
 
         {/* ALCANCE Y ENTREGABLES */}
-        {data.deliverables && data.deliverables.filter(Boolean).length > 0 && (
+        {deliverables.filter(Boolean).length > 0 && (
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {t.scopeDeliverables}
             </h3>
             <ul className="space-y-2 text-xs sm:text-sm">
-              {data.deliverables.filter(Boolean).map((d, idx) => (
+              {deliverables.filter(Boolean).map((d, idx) => (
                 <li key={idx} className="flex items-start gap-2.5">
                   <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                   <span>{d}</span>
@@ -154,7 +154,7 @@ export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
         )}
 
         {/* INVERSIÓN Y TABLA */}
-        {data.lineItems && data.lineItems.length > 0 && (
+        {lineItems.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {t.investment}
@@ -168,7 +168,7 @@ export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {data.lineItems.map((item) => (
+                  {lineItems.map((item) => (
                     <tr key={item.id}>
                       <td className="px-4 py-2.5 text-foreground">{item.description}</td>
                       <td className="px-4 py-2.5 text-right font-medium text-foreground">
@@ -180,7 +180,7 @@ export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
                     <td className="px-4 py-2 font-medium text-muted-foreground">{t.subtotal}</td>
                     <td className="px-4 py-2 text-right font-medium text-foreground">{formatMoney(subtotal)}</td>
                   </tr>
-                  {data.taxRate > 0 && (
+                  {(data?.taxRate || 0) > 0 && (
                     <tr className="bg-muted/20">
                       <td className="px-4 py-2 font-medium text-muted-foreground">{t.tax} ({data.taxRate}%)</td>
                       <td className="px-4 py-2 text-right font-medium text-foreground">{formatMoney(taxAmount)}</td>
@@ -194,7 +194,7 @@ export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
               </table>
             </div>
 
-            {data.estimatedWeeks > 0 && (
+            {(data?.estimatedWeeks || 0) > 0 && (
               <p className="text-xs text-muted-foreground pt-1">
                 {t.estimatedTimeline}: <span className="font-semibold text-foreground">{data.estimatedWeeks} {t.weeksFromKickoff}</span>
               </p>
@@ -203,19 +203,19 @@ export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
         )}
 
         {/* TÉRMINOS Y PAGO */}
-        {(data.paymentTerms || data.revisionPolicy) && (
+        {(data?.paymentTerms || data?.revisionPolicy) && (
           <div className="space-y-3 border-t border-border pt-6">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {t.termsAndPayment}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-foreground/80">
-              {data.paymentTerms && (
+              {data?.paymentTerms && (
                 <div>
                   <p className="font-semibold text-foreground mb-1">{t.paymentTerms}</p>
                   <p className="leading-relaxed">{data.paymentTerms}</p>
                 </div>
               )}
-              {data.revisionPolicy && (
+              {data?.revisionPolicy && (
                 <div>
                   <p className="font-semibold text-foreground mb-1">{t.revisionPolicy}</p>
                   <p className="leading-relaxed">{data.revisionPolicy}</p>
@@ -228,18 +228,18 @@ export function ProposalPreview({ data, lang = "es" }: ProposalPreviewProps) {
         {/* FIRMAS */}
         <div className="grid grid-cols-2 gap-8 border-t border-border pt-12 text-xs">
           <div className="border-t border-muted-foreground/30 pt-2">
-            <p className="font-bold text-foreground">{data.clientName}</p>
+            <p className="font-bold text-foreground">{data?.clientName || ""}</p>
             <p className="text-muted-foreground text-[10px]">{t.clientSignature}</p>
           </div>
           <div className="border-t border-muted-foreground/30 pt-2">
-            <p className="font-bold text-foreground">{data.providerName}</p>
+            <p className="font-bold text-foreground">{data?.providerName || ""}</p>
             <p className="text-muted-foreground text-[10px]">{t.providerSignature}</p>
           </div>
         </div>
 
         {/* PIE DE PÁGINA */}
         <p className="text-[10px] text-center text-muted-foreground border-t border-border pt-4">
-          {t.footerText} {data.clientCompany || "el cliente"}. {t.generatedWith}
+          {t.footerText} {data?.clientCompany || "el cliente"}. {t.generatedWith}
         </p>
       </div>
     </div>
