@@ -1,268 +1,493 @@
 "use client"
 
-import { useCallback, useState } from "react"
-import { Download, Link2, WandSparkles, Loader2 } from "lucide-react"
-import { type ProposalData, defaultProposal } from "@/lib/proposal"
-import { AppHeader } from "@/components/app-header"
-import { ProposalEditor } from "@/components/proposal-editor"
-import { ProposalPreview } from "@/components/proposal-preview"
-import { Toast } from "@/components/toast"
+import React, { useState } from "react"
+import {
+  type ProposalData,
+  CURRENCIES,
+  computeTotals,
+  defaultProposalES,
+  defaultProposalEN,
+  formatCurrency,
+} from "@/lib/proposal"
+import { ProposalPreview } from "./proposal-preview"
 
-// Plantillas por defecto para cambio rápido de idioma en la propuesta inicial
-const defaultContents = {
+const uiLabels = {
   es: {
-    projectTitle: "Propuesta de Rediseño Web para Acme Corp",
-    clientName: "Sarah Mitchell",
-    clientCompany: "Acme Corp",
-    providerName: "Jordan Rivera — PropelAI Studio",
-    executiveSummary: "El sitio web actual de Acme Corp ya no refleja la calidad de sus productos ni la ambición de su marca. Esta propuesta detalla un rediseño completo enfocado en una experiencia moderna y orientada a la conversión: una identidad visual renovada, un front-end más rápido y accesible, y una estructura de contenido que guíe a los visitantes hacia convertirse en clientes."
+    editingFor: "Editando para",
+    generateAiText: "Generar Texto IA",
+    copyLink: "Copiar Enlace",
+    linkCopied: "¡Enlace Copiado!",
+    exportPdf: "Exportar PDF",
+    proposalDetails: "Detalles de la Propuesta",
+    companyLogo: "Logo de la Empresa",
+    logoHelp: "PNG, JPG o SVG. Se muestra en el encabezado de la propuesta.",
+    uploadLogo: "Subir logo",
+    clientProviderInfo: "Información de Cliente y Proveedor",
+    clientName: "Nombre del Cliente",
+    clientCompany: "Empresa del Cliente",
+    providerName: "Nombre del Proveedor",
+    date: "Fecha de Emisión",
+    validUntil: "Válida Hasta",
+    scopeOfWork: "Alcance del Trabajo",
+    projectTitle: "Título del Proyecto",
+    executiveSummary: "Resumen Ejecutivo / Visión General",
+    generateAiProposalText: "Generar Texto IA para la Propuesta",
+    coreDeliverables: "Entregables Principales",
+    addDeliverable: "Agregar entregable",
+    pricingTimeline: "Precios y Cronograma",
+    estimatedTimeline: "Tiempo Estimado (semanas)",
+    currency: "Moneda",
+    lineItemPricing: "Precios Desglosados",
+    descriptionPlaceholder: "Descripción del ítem",
+    amountPlaceholder: "Monto",
+    addLineItem: "Agregar ítem",
+    taxRate: "Impuesto (%)",
+    subtotal: "Subtotal",
+    tax: "Impuesto",
+    total: "Total",
+    termsPayment: "Términos y Pago",
+    paymentTerms: "Términos de Pago",
+    revisionPolicy: "Política de Revisiones",
+    deliverablePlaceholder: "Ej. Diseño UX/UI en Figma",
   },
   en: {
-    projectTitle: "Web Redesign Proposal for Acme Corp",
-    clientName: "Sarah Mitchell",
-    clientCompany: "Acme Corp",
-    providerName: "Jordan Rivera — PropelAI Studio",
-    executiveSummary: "Acme Corp's current website no longer reflects the quality of its products or the ambitions of its brand. This proposal outlines a complete redesign focused on a modern, conversion-oriented experience: a refreshed visual identity, a faster and more accessible front-end, and a content structure that guides visitors toward becoming customers."
-  }
+    editingFor: "Editing for",
+    generateAiText: "Generate AI Text",
+    copyLink: "Copy Link",
+    linkCopied: "Link Copied!",
+    exportPdf: "Export PDF",
+    proposalDetails: "Proposal Details",
+    companyLogo: "Company Logo",
+    logoHelp: "PNG, JPG or SVG. Shown on the proposal header.",
+    uploadLogo: "Upload logo",
+    clientProviderInfo: "Client & Provider Info",
+    clientName: "Client Name",
+    clientCompany: "Client Company",
+    providerName: "Provider Name",
+    date: "Date Issued",
+    validUntil: "Valid Until",
+    scopeOfWork: "Scope of Work",
+    projectTitle: "Project Title",
+    executiveSummary: "Executive Summary / Overview",
+    generateAiProposalText: "Generate AI Proposal Text",
+    coreDeliverables: "Core Deliverables",
+    addDeliverable: "Add deliverable",
+    pricingTimeline: "Pricing & Timeline",
+    estimatedTimeline: "Estimated Timeline (weeks)",
+    currency: "Currency",
+    lineItemPricing: "Line-item Pricing",
+    descriptionPlaceholder: "Item description",
+    amountPlaceholder: "Amount",
+    addLineItem: "Add line item",
+    taxRate: "Tax (%)",
+    subtotal: "Subtotal",
+    tax: "Tax",
+    total: "Total",
+    termsPayment: "Terms & Payment",
+    paymentTerms: "Payment Terms",
+    revisionPolicy: "Revision Policy",
+    deliverablePlaceholder: "e.g. UX/UI Figma Design",
+  },
 }
 
 export function ProposalBuilder() {
   const [lang, setLang] = useState<"es" | "en">("es")
-  const [data, setData] = useState<ProposalData>(defaultProposal)
-  const [enhancing, setEnhancing] = useState(false)
-  const [exporting, setExporting] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [formData, setFormData] = useState<ProposalData>(defaultProposalES)
+  const [copied, setCopied] = useState(false)
 
-  const update = useCallback((patch: Partial<ProposalData>) => {
-    setData((prev) => ({ ...prev, ...patch }))
-  }, [])
+  const t = uiLabels[lang]
 
-  // Manejador del cambio de idioma en la barra
-  const handleLanguageChange = (newLang: "es" | "en") => {
+  const handleLangToggle = (newLang: "es" | "en") => {
+    if (newLang === lang) return
     setLang(newLang)
-    setData((prev) => ({
-      ...prev,
-      projectTitle: defaultContents[newLang].projectTitle,
-      executiveSummary: defaultContents[newLang].executiveSummary,
-    }))
-    setToast(newLang === "es" ? "Idioma cambiado a Español" : "Language changed to English")
+    setFormData(newLang === "es" ? defaultProposalES : defaultProposalEN)
   }
 
-  const handleEnhance = useCallback(async () => {
-    setEnhancing(true)
-    try {
-      const scopeContent = [
-        data.deliverables.filter(Boolean).map((d) => `- ${d}`).join("\n"),
-        data.executiveSummary.trim()
-          ? `Detalles actuales:\n${data.executiveSummary.trim()}`
-          : "",
-      ]
-        .filter(Boolean)
-        .join("\n\n")
+  const handleChange = (field: keyof ProposalData, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
 
-      const res = await fetch("/api/generate-summary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: data.projectTitle || (lang === "es" ? "Propuesta Comercial" : "Commercial Proposal"),
-          scope: scopeContent || "Rediseño y optimización de servicios",
-          lang: lang,
-        }),
-      })
+  const handleDeliverableChange = (index: number, value: string) => {
+    const updated = [...(formData.deliverables || [])]
+    updated[index] = value
+    handleChange("deliverables", updated)
+  }
 
-      const payload = (await res.json().catch(() => ({}))) as {
-        summary?: string
-        error?: string
+  const addDeliverable = () => {
+    handleChange("deliverables", [...(formData.deliverables || []), ""])
+  }
+
+  const removeDeliverable = (index: number) => {
+    const updated = (formData.deliverables || []).filter((_, i) => i !== index)
+    handleChange("deliverables", updated)
+  }
+
+  const handleLineItemChange = (index: number, field: "description" | "amount", value: any) => {
+    const updated = [...(formData.lineItems || [])]
+    updated[index] = { ...updated[index], [field]: value }
+    handleChange("lineItems", updated)
+  }
+
+  const addLineItem = () => {
+    const newId = String(Date.now())
+    handleChange("lineItems", [...(formData.lineItems || []), { id: newId, description: "", amount: 0 }])
+  }
+
+  const removeLineItem = (index: number) => {
+    const updated = (formData.lineItems || []).filter((_, i) => i !== index)
+    handleChange("lineItems", updated)
+  }
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        handleChange("companyLogoUrl", reader.result as string)
       }
-
-      if (!res.ok || !payload.summary) {
-        throw new Error(payload.error || "Error al conectar con la API")
-      }
-
-      setData((prev) => ({ ...prev, executiveSummary: payload.summary! }))
-      setToast(lang === "es" ? "¡Resumen ejecutivo generado!" : "Executive summary generated!")
-    } catch (err) {
-      console.log("[PropelAI] handleEnhance error:", err)
-      setToast(
-        err instanceof Error && err.message
-          ? err.message
-          : (lang === "es" ? "No se pudo generar el texto." : "Could not generate text."),
-      )
-    } finally {
-      setEnhancing(false)
+      reader.readAsDataURL(file)
     }
-  }, [data.projectTitle, data.deliverables, data.executiveSummary, lang])
+  }
 
-  const handleExport = useCallback(async () => {
-    const node = document.getElementById("proposal-document")
-    if (!node) return
-    setExporting(true)
-    try {
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import("html2canvas-pro"),
-        import("jspdf"),
-      ])
+  const handleCopyLink = () => {
+    if (typeof window !== "undefined") {
+      navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
-      const canvas = await html2canvas(node, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-      })
-
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "pt",
-        format: "a4",
-      })
-      const pageWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
-
-      const imgWidth = pageWidth
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-      const imgData = canvas.toDataURL("image/png")
-
-      let heightLeft = imgHeight
-      let position = 0
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
-
-      while (heightLeft > 0) {
-        position -= pageHeight
-        pdf.addPage()
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight)
-        heightLeft -= pageHeight
-      }
-
-      const safeName =
-        (data.clientCompany || "proposal")
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "") || "proposal"
-      pdf.save(`${safeName}-proposal.pdf`)
-      setToast(lang === "es" ? "¡PDF descargado con éxito!" : "PDF downloaded successfully!")
-    } catch {
+  const handlePrint = () => {
+    if (typeof window !== "undefined") {
       window.print()
-    } finally {
-      setExporting(false)
     }
-  }, [data.clientCompany, lang])
+  }
 
-  const handleCopyLink = useCallback(() => {
-    const url =
-      typeof window !== "undefined" ? window.location.href : "https://propelai.app"
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(url).catch(() => {})
-    }
-    setToast(lang === "es" ? "¡Enlace copiado al portapapeles!" : "Link copied to clipboard!")
-  }, [lang])
+  const lineItems = Array.isArray(formData.lineItems) ? formData.lineItems : []
+  const { subtotal, tax: taxAmount, total: totalAmount } = computeTotals(lineItems, formData.taxRate || 0)
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background">
-      <AppHeader />
-
-      {/* Action toolbar */}
-      <div className="print-hidden flex items-center justify-between gap-4 border-b border-border bg-card/40 px-4 py-3 sm:px-6">
-        <div className="hidden flex-col sm:flex">
-          <span className="text-sm font-semibold text-foreground">
-            {data.projectTitle || (lang === "es" ? "Propuesta sin título" : "Untitled Proposal")}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {lang === "es" ? "Editando para" : "Editing for"} {data.clientCompany || (lang === "es" ? "tu cliente" : "your client")}
-          </span>
-        </div>
-        
-        <div className="flex flex-1 items-center justify-end gap-2">
-          {/* TOGGLE ES / EN */}
-          <div className="flex items-center rounded-lg border border-border bg-card p-1 text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => handleLanguageChange("es")}
-              className={`rounded-md px-2.5 py-1 transition-colors ${
-                lang === "es"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              ES
-            </button>
-            <button
-              type="button"
-              onClick={() => handleLanguageChange("en")}
-              className={`rounded-md px-2.5 py-1 transition-colors ${
-                lang === "en"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              EN
-            </button>
+    <div className="min-h-screen bg-background text-foreground">
+      {/* HEADER SUPERIOR */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
+              P
+            </div>
+            <div>
+              <h1 className="text-sm font-bold leading-none">
+                {formData.projectTitle || "Propuesta Comercial"}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                {t.editingFor} <span className="font-semibold text-foreground">{formData.clientCompany || "Cliente"}</span>
+              </p>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleEnhance}
-            disabled={enhancing}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-70"
-          >
-            {enhancing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <WandSparkles className="h-4 w-4" />
-            )}
-            <span className="hidden md:inline">
-              {lang === "es" ? "Generar Texto IA" : "Generate AI Text"}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            <Link2 className="h-4 w-4" />
-            <span className="hidden md:inline">
-              {lang === "es" ? "Copiar Enlace" : "Copy Link"}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={exporting}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:opacity-70"
-          >
-            {exporting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            {exporting
-              ? (lang === "es" ? "Exportando..." : "Exporting...")
-              : (lang === "es" ? "Exportar PDF" : "Export PDF")}
-          </button>
-        </div>
-      </div>
+          <div className="flex items-center gap-2">
+            {/* TOGGLE IDIOMA */}
+            <div className="flex items-center rounded-lg border border-border bg-muted p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => handleLangToggle("es")}
+                className={`rounded px-2.5 py-1 font-semibold transition ${
+                  lang === "es" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                ES
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLangToggle("en")}
+                className={`rounded px-2.5 py-1 font-semibold transition ${
+                  lang === "en" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                EN
+              </button>
+            </div>
 
-      {/* Split view */}
-      <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(420px,1fr)_1.1fr]">
-        {/* Editor */}
-        <div className="thin-scrollbar print-hidden overflow-y-auto border-b border-border bg-background px-4 py-6 sm:px-6 lg:border-b-0 lg:border-r">
-          <p className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            {lang === "es" ? "Detalles de la propuesta" : "Proposal Details"}
-          </p>
-          <ProposalEditor
-            data={data}
-            update={update}
-            onEnhance={handleEnhance}
-            enhancing={enhancing}
-          />
-        </div>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted transition"
+            >
+              {copied ? t.linkCopied : t.copyLink}
+            </button>
 
-        {/* Preview */}
-        <div className="thin-scrollbar overflow-y-auto bg-muted p-4 sm:p-8">
-          <ProposalPreview data={data} />
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 transition"
+            >
+              {t.exportPdf}
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <Toast message={toast} onDismiss={() => setToast(null)} />
+      {/* CONTENIDO PRINCIPAL: 2 COLUMNAS */}
+      <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* COLUMNA IZQUIERDA: FORMULARIO */}
+          <div className="lg:col-col-span-5 lg:col-span-5 space-y-6 rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="text-base font-bold tracking-tight text-foreground border-b border-border pb-3">
+              {t.proposalDetails}
+            </h2>
+
+            {/* LOGO */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-foreground">{t.companyLogo}</label>
+              <p className="text-[11px] text-muted-foreground">{t.logoHelp}</p>
+              <div className="flex items-center gap-3 pt-1">
+                {formData.companyLogoUrl && (
+                  <img src={formData.companyLogoUrl} alt="Logo preview" className="h-10 w-10 object-contain rounded border border-border" />
+                )}
+                <label className="cursor-pointer rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium hover:bg-muted transition">
+                  {t.uploadLogo}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                </label>
+              </div>
+            </div>
+
+            {/* INFO CLIENTE Y PROVEEDOR */}
+            <div className="space-y-4 pt-2">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t.clientProviderInfo}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium">{t.clientName}</label>
+                  <input
+                    type="text"
+                    value={formData.clientName}
+                    onChange={(e) => handleChange("clientName", e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">{t.clientCompany}</label>
+                  <input
+                    type="text"
+                    value={formData.clientCompany}
+                    onChange={(e) => handleChange("clientCompany", e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">{t.providerName}</label>
+                  <input
+                    type="text"
+                    value={formData.providerName}
+                    onChange={(e) => handleChange("providerName", e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">{t.date}</label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => handleChange("date", e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium">{t.validUntil}</label>
+                  <input
+                    type="date"
+                    value={formData.validUntil}
+                    onChange={(e) => handleChange("validUntil", e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ALCANCE Y RESUMEN */}
+            <div className="space-y-4 pt-2">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t.scopeOfWork}</h3>
+              <div>
+                <label className="text-xs font-medium">{t.projectTitle}</label>
+                <input
+                  type="text"
+                  value={formData.projectTitle}
+                  onChange={(e) => handleChange("projectTitle", e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium">{t.executiveSummary}</label>
+                <textarea
+                  rows={4}
+                  value={formData.executiveSummary}
+                  onChange={(e) => handleChange("executiveSummary", e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-border bg-background p-3 text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              {/* ENTREGABLES */}
+              <div>
+                <label className="text-xs font-medium">{t.coreDeliverables}</label>
+                <div className="space-y-2 mt-2">
+                  {(formData.deliverables || []).map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-muted-foreground w-4">{idx + 1}.</span>
+                      <input
+                        type="text"
+                        value={item}
+                        placeholder={t.deliverablePlaceholder}
+                        onChange={(e) => handleDeliverableChange(idx, e.target.value)}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeDeliverable(idx)}
+                        className="text-xs text-red-500 hover:text-red-700 px-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addDeliverable}
+                    className="mt-1 text-xs font-semibold text-primary hover:underline"
+                  >
+                    + {t.addDeliverable}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* PRECIOS Y TIEMPO */}
+            <div className="space-y-4 pt-2">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t.pricingTimeline}</h3>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium">{t.estimatedTimeline}</label>
+                  <input
+                    type="number"
+                    value={formData.estimatedWeeks}
+                    onChange={(e) => handleChange("estimatedWeeks", Number(e.target.value))}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">{t.currency}</label>
+                  <select
+                    value={formData.currency}
+                    onChange={(e) => handleChange("currency", e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* LÍNEAS DE PRECIO */}
+              <div>
+                <label className="text-xs font-medium">{t.lineItemPricing}</label>
+                <div className="space-y-2 mt-2">
+                  {lineItems.map((item, idx) => (
+                    <div key={item.id || idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder={t.descriptionPlaceholder}
+                        value={item.description}
+                        onChange={(e) => handleLineItemChange(idx, "description", e.target.value)}
+                        className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <input
+                        type="number"
+                        placeholder={t.amountPlaceholder}
+                        value={item.amount || ""}
+                        onChange={(e) => handleLineItemChange(idx, "amount", Number(e.target.value))}
+                        className="w-24 rounded-lg border border-border bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary text-right"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeLineItem(idx)}
+                        className="text-xs text-red-500 hover:text-red-700 px-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addLineItem}
+                    className="mt-1 text-xs font-semibold text-primary hover:underline"
+                  >
+                    + {t.addLineItem}
+                  </button>
+                </div>
+              </div>
+
+              {/* IMPUESTOS Y RESUMEN FINANCIERO */}
+              <div className="rounded-xl bg-muted/40 p-3 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span>{t.taxRate}</span>
+                  <input
+                    type="number"
+                    value={formData.taxRate}
+                    onChange={(e) => handleChange("taxRate", Number(e.target.value))}
+                    className="w-16 rounded border border-border bg-background px-2 py-1 text-right text-xs"
+                  />
+                </div>
+                <div className="flex justify-between text-muted-foreground pt-1 border-t border-border">
+                  <span>{t.subtotal}</span>
+                  <span>{formatCurrency(subtotal, formData.currency)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>{t.tax} ({formData.taxRate || 0}%)</span>
+                  <span>{formatCurrency(taxAmount, formData.currency)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-foreground text-sm pt-1 border-t border-border">
+                  <span>{t.total}</span>
+                  <span className="text-primary">{formatCurrency(totalAmount, formData.currency)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* TÉRMINOS Y POLÍTICAS */}
+            <div className="space-y-4 pt-2">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t.termsPayment}</h3>
+              <div>
+                <label className="text-xs font-medium">{t.paymentTerms}</label>
+                <textarea
+                  rows={3}
+                  value={formData.paymentTerms}
+                  onChange={(e) => handleChange("paymentTerms", e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium">{t.revisionPolicy}</label>
+                <textarea
+                  rows={2}
+                  value={formData.revisionPolicy}
+                  onChange={(e) => handleChange("revisionPolicy", e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+          </div>
+
+          {/* COLUMNA DERECHA: VISTA PREVIA DEL DOCUMENTO */}
+          <div className="lg:col-span-7 sticky top-20">
+            <ProposalPreview data={formData} lang={lang} />
+          </div>
+
+        </div>
+      </main>
     </div>
   )
 }
