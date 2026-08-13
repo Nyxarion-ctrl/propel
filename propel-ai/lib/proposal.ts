@@ -1,3 +1,25 @@
+export type CurrencyCode = "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "DOP"
+
+export interface CurrencyOption {
+  code: CurrencyCode
+  symbol: string
+  label: string
+}
+
+export const CURRENCIES: CurrencyOption[] = [
+  { code: "USD", symbol: "$", label: "USD — US Dollar" },
+  { code: "EUR", symbol: "€", label: "EUR — Euro" },
+  { code: "GBP", symbol: "£", label: "GBP — British Pound" },
+  { code: "CAD", symbol: "CA$", label: "CAD — Canadian Dollar" },
+  { code: "AUD", symbol: "A$", label: "AUD — Australian Dollar" },
+  { code: "DOP", symbol: "RD$", label: "DOP — Peso Dominicano" },
+]
+
+export interface Deliverable {
+  id: string
+  title: string
+}
+
 export interface LineItem {
   id: string
   description: string
@@ -15,11 +37,30 @@ export interface ProposalData {
   executiveSummary: string
   deliverables: string[]
   estimatedWeeks: number
-  currency: string
+  currency: CurrencyCode | string
   lineItems: LineItem[]
   taxRate: number
   paymentTerms: string
   revisionPolicy: string
+}
+
+export function computeTotals(lineItems: LineItem[], taxRate: number) {
+  const subtotal = lineItems.reduce((acc, item) => acc + (item.amount || 0), 0)
+  const tax = (subtotal * (taxRate || 0)) / 100
+  const total = subtotal + tax
+  return { subtotal, tax, total }
+}
+
+export function formatCurrency(amount: number, currencyCode: string = "USD") {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyCode,
+      maximumFractionDigits: 2,
+    }).format(amount)
+  } catch {
+    return `$${amount.toFixed(2)}`
+  }
 }
 
 export const defaultProposalES: ProposalData = {
